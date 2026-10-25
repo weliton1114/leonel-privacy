@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>LEONEL — Excluir conta</title>
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main>
+<p class="nav"><a href="../">Política de Privacidade</a> · <a href="./">Excluir conta</a></p>
+<h1>Excluir conta do LEONEL</h1>
+<p class="muted">Aplicativo LEONEL para Android (com.leonelgame.leonel).</p>
+
+<div class="card">
+<h2>Opção 1 — Pelo aplicativo</h2>
+<ol>
+<li>Abra o LEONEL e entre na sua conta.</li>
+<li>Toque em <b>MEU PERFIL</b> e depois em <b>EXCLUIR CONTA</b>.</li>
+<li>Digite <code>EXCLUIR</code> e toque em <b>EXCLUIR DEFINITIVAMENTE</b>.</li>
+</ol>
+<p>Contas de visitante (sem e-mail) só podem ser excluídas pelo aplicativo, no aparelho onde foram criadas.</p>
+</div>
+
+<div class="card warn">
+<h2>Opção 2 — Por esta página</h2>
+<p>Entre com o e-mail e a senha da conta. A exclusão é feita na hora e só apaga a conta que entrou.</p>
+<form id="del" autocomplete="off" novalidate>
+<label>E-mail<input id="email" type="email" required autocomplete="username"></label>
+<label>Senha<input id="password" type="password" required autocomplete="current-password"></label>
+<label>Digite <code>EXCLUIR</code> para confirmar<input id="confirm" type="text" required maxlength="10"></label>
+<button id="go" type="submit" disabled>Excluir minha conta definitivamente</button>
+</form>
+<p id="status" role="status" aria-live="polite"></p>
+<p class="muted">Esqueceu a senha? Use “Esqueci minha senha” no aplicativo e depois volte aqui.</p>
+</div>
+
+<div class="card">
+<h2>Opção 3 — Por e-mail</h2>
+<p>Envie um pedido para <a href="mailto:leonel.suport87@gmail.com?subject=Excluir%20conta%20LEONEL&amp;body=Quero%20excluir%20minha%20conta%20do%20LEONEL%20e%20os%20dados%20ligados%20a%20ela.%0A%0ANick%3A%20%0AE-mail%20da%20conta%3A%20%0A">leonel.suport87@gmail.com</a> com o assunto <b>“Excluir conta LEONEL”</b>, informando seu Nick.</p>
+<p>Envie a partir do e-mail cadastrado na conta: por segurança, só excluímos depois de confirmar que o pedido veio dele. A resposta é enviada para o mesmo e-mail.</p>
+<p><a class="btn" href="mailto:leonel.suport87@gmail.com?subject=Excluir%20conta%20LEONEL&amp;body=Quero%20excluir%20minha%20conta%20do%20LEONEL%20e%20os%20dados%20ligados%20a%20ela.%0A%0ANick%3A%20%0AE-mail%20da%20conta%3A%20%0A">Abrir e-mail de solicitação</a></p>
+</div>
+
+<div class="card">
+<h2>O que é apagado</h2>
+<ul>
+<li>Conta de acesso (e-mail e senha) e identificador da conta.</li>
+<li>Nick, resultados de partidas, posições nos rankings mundiais e progresso (LEVEL/XP) da conta.</li>
+<li>Registros de bônus de teste ligados à conta.</li>
+</ul>
+<p>Não mantemos cópia desses dados depois da exclusão. O provedor de infraestrutura (Supabase) pode manter registros técnicos de acesso por tempo limitado, conforme as políticas dele.</p>
+<h2>Dados no seu aparelho</h2>
+<p>O progresso do jogo offline fica só no aparelho e não é apagado pela exclusão da conta. Para apagá-lo, desinstale o aplicativo ou limpe os dados dele nas configurações do Android.</p>
+</div>
+</main>
+<script>
+// Public configuration only (Supabase URL + publishable key), injected by
+// tools/legal/build_site.py.  The password is never stored.
+const SUPABASE_URL="https://bkkreddelxkxanjzwscz.supabase.co";
+const PUBLISHABLE_KEY="sb_publishable_ln7jHmHGNgGVQLTZMtGbpQ_5EmHmADh";
+const form=document.getElementById("del"),go=document.getElementById("go"),statusEl=document.getElementById("status");
+const ready=SUPABASE_URL.startsWith("https://")&&PUBLISHABLE_KEY.startsWith("sb_publishable_");
+function check(){go.disabled=!ready||document.getElementById("confirm").value.trim().toUpperCase()!=="EXCLUIR";}
+form.addEventListener("input",check);check();
+if(!ready)statusEl.textContent="Exclusão pela página ainda não configurada. Use o aplicativo.";
+function show(msg,ok){statusEl.textContent=msg;statusEl.className=ok?"ok":"err";}
+form.addEventListener("submit",async(e)=>{
+ e.preventDefault();if(go.disabled)return;
+ const email=document.getElementById("email").value.trim(),pw=document.getElementById("password");
+ go.disabled=true;show("Verificando a conta…",true);
+ try{
+  const login=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"apikey":PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({email:email,password:pw.value})});
+  pw.value="";
+  if(!login.ok){show(login.status===400?"E-mail ou senha incorretos. Nada foi apagado.":"Serviço indisponível agora. Nada foi apagado; tente mais tarde.",false);check();return;}
+  const token=(await login.json()).access_token;
+  const del=await fetch(SUPABASE_URL+"/rest/v1/rpc/world_delete_account",{method:"POST",headers:{"apikey":PUBLISHABLE_KEY,"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({confirmation:"EXCLUIR"})});
+  if(del.ok){form.reset();show("Conta excluída. Os dados da conta foram apagados do servidor.",true);return;}
+  show("Não foi possível excluir agora (código "+del.status+"). Nada foi apagado; tente mais tarde.",false);
+ }catch(err){pw.value="";show("Sem conexão com o servidor. Nada foi apagado.",false);}
+ check();
+});
+</script>
+</body>
+</html>
